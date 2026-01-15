@@ -11,65 +11,58 @@ import streamlit as st
 # The underscore (_) tells Streamlit: "Do not waste time hashing this object".
 # The cache relies NOW only on 'ticker_name'.
 
-@st.cache_resource(show_spinner="Training AI Model (Fast)...", max_entries=100)
-def _train_xgboost_cached(_df: pd.DataFrame, ticker_name: str):
-    """
-    Cached training function.
-    Prefixing argument with '_' (_df) prevents Streamlit from hashing the DataFrame.
-    Returns MINIMAL data to memory usage: just the model and feature names.
-    Calculations are done on the fly.
-    """
-    # 1. Define Features
-    exclude_cols = ['date', 'Name', 'Target', 'close', 'open', 'high', 'low', 'volume', 'Daily_Return']
-    feature_cols = [c for c in _df.columns if c not in exclude_cols]
-    
-    X = _df[feature_cols]
-    y = _df['Target']
-    
-    # 2. Split
-    X_train, _, y_train, _ = train_test_split(X, y, test_size=0.2, shuffle=False)
-    
-    # 3. Train
-    # HARDCODED n_jobs=1 to prevent freezing on Free Tier
-    # This overrides global config just in case.
-    params = config.XGB_PARAMS.copy()
-    params['n_jobs'] = 1
-    
-    model = XGBClassifier(**params)
-    model.fit(X_train, y_train)
-    
-    feature_importance = pd.DataFrame({
-        'Feature': feature_cols,
-        'Importance': model.feature_importances_
-    }).sort_values(by='Importance', ascending=False)
-    
-    # ONLY return the model and metadata. Do NOT return large arrays (X_test, predictions)
-    # to avoid RAM eviction.
-    return model, feature_importance, feature_cols
-
-
-class TrendPredictor:
-    def __init__(self):
-        self.model = None
-        self.feature_importance = None
-        self.feature_cols = None
-
     def train(self, df):
-        # Explicitly extract the ticker name for the cache key
+        # 1. Initialize session state for models if not present
+        if 'trained_models' not in st.session_state:
+            st.session_state['trained_models'] = {}
+
+        # 2. Extract ticker name
         if 'Name' in df.columns:
             ticker_name = str(df['Name'].iloc[0])
         else:
             ticker_name = "UNKNOWN_TICKER"
 
-        # Call the cached function to get the MODEL
-        results = _train_xgboost_cached(_df=df, ticker_name=ticker_name)
-        
-        self.model = results[0]
-        self.feature_importance = results[1]
-        self.feature_cols = results[2]
-        
-        # --- RE-RUN PREDICTION ON THE FLY ---
-        # This is fast (ms) and saves RAM in the cache.
+        # 3. Check Cache (st.session_state)
+        # If model exists for this ticker, load it instantly.
+        if ticker_name in st.session_state['trained_models']:
+            cached_data = st.session_state['trained_models'][ticker_name]
+            self.model = cached_data['model']
+            self.feature_importance = cached_data['feature_importance']
+            self.feature_cols = cached_data['feature_cols']
+        else:
+            # 4. Train New Model (only if not in cache)
+            params = config.XGB_PARAMS.copy()
+            params['n_jobs'] = 1 # Force single thread
+            
+            exclude_cols = ['date', 'Name', 'Target', 'close', 'open', 'high', 'low', 'volume', 'Daily_Return']
+            feature_cols = [c for c in df.columns if c not in exclude_cols]
+            
+            X = df[feature_cols]
+            y = df['Target']
+            
+            X_train, _, y_train, _ = train_test_split(X, y, test_size=0.2, shuffle=False)
+            
+            model = XGBClassifier(**params)
+            model.fit(X_train, y_train)
+            
+            feature_importance = pd.DataFrame({
+                'Feature': feature_cols,
+                'Importance': model.feature_importances_
+            }).sort_values(by='Importance', ascending=False)
+
+            # 5. Save to Cache
+            st.session_state['trained_models'][ticker_name] = {
+                'model': model,
+                'feature_importance': feature_importance,
+                'feature_cols': feature_cols
+            }
+            
+            self.model = model
+            self.feature_importance = feature_importance
+            self.feature_cols = feature_cols
+
+        # 6. Predict (Always runs fast)
+        # Re-create X_test for current DataFrame
         exclude_cols = ['date', 'Name', 'Target', 'close', 'open', 'high', 'low', 'volume', 'Daily_Return']
         X = df[self.feature_cols]
         y = df['Target']
