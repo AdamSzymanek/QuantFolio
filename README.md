@@ -84,7 +84,7 @@ To run the engine locally for development or testing:
 ## 👨‍💻 Author & Contact
 
 **Adam Szymanek**
-*Computer Science Student @ AGH UST 
+*Computer Science Student @ AGH UST*
 
 This project was built to demonstrate proficiency in financial modeling and full-stack data science.
 
