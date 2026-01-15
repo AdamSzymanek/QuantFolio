@@ -21,7 +21,6 @@ class MarketData:
         try:
             self.data = pd.read_csv(self.file_path)
             self.data['date'] = pd.to_datetime(self.data['date'])
-            # Sort by date just in case
             self.data = self.data.sort_values(by='date')
         except Exception as e:
             raise RuntimeError(f"Error loading data: {e}")
