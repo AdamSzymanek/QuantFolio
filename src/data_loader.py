@@ -2,6 +2,20 @@
 import pandas as pd
 import os
 from datetime import datetime
+import streamlit as st
+
+@st.cache_data(show_spinner="Loading S&P 500 Data...")
+def _load_csv_cached(file_path):
+    """
+    Helper function to load CSV only once.
+    """
+    if not os.path.exists(file_path):
+        return None  
+        
+    df = pd.read_csv(file_path)
+    df['date'] = pd.to_datetime(df['date'])
+    df = df.sort_values(by='date')
+    return df
 
 class MarketData:
     """
