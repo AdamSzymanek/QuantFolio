@@ -176,8 +176,8 @@ def get_processed_data(ticker):
     df = data_loader.get_stock(ticker)
     
     # --- PERFORMANCE OPTIMIZATION ---
-    # Only process the last ~4 years of data for indicators.
-    # Processing 5 years takes too long on Free Tier.
+    # Processing limited history handles.
+    # The dataset is already truncated to 2 years, so this tail call is safe/redundant but kept for robust safety.
     df = df.tail(1000).copy() 
     
     df = FinancialFeatures.add_technical_indicators(df)

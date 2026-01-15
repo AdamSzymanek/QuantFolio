@@ -35,7 +35,7 @@ import streamlit as st
             params['n_jobs'] = 1 # Force single thread
             
             # --- OPTIMIZATION: Limit to recent history (last 1 year) ---
-            # Training on 5 years of daily data (1250 rows) is too slow on Free Tier.
+            # Training on full history is unnecessary for short-term prediction.
             # 252 rows (1 year) is fastest and sufficient for demo.
             train_df = df.tail(252).copy()
             
