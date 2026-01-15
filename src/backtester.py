@@ -17,23 +17,13 @@ class StrategyBacktest:
         
         Assumes 'predictions' aligns with the test set portion of 'df'.
         """
-        # We need to align the dataframe with the predictions equal to the test size
-        # The predictions correspond to the *next day's* movement.
-        # But in our feature engine, 'Target' is shifted -1. 
-        # So prediction at index i is for price movement from i to i+1.
-        
-        # Slice df to match test set size
+
         test_size = len(predictions)
         strategy_df = df.iloc[-test_size:].copy()
         
         strategy_df['Predicted_Signal'] = predictions
         
-        # Strategy Returns: If Signal is 1, we get Daily_Return. If 0, we get 0 (Risk Free Rate assumed 0 for simplicity here or handled separately)
-        # Note: The prediction at time t tells us to hold for t+1. 
-        # The 'Daily_Return' at time t is (Close_t - Close_t-1) / Close_t-1.
-        # So we need to shift the signal to align with the return it generates.
-        # Signal calculated at t-1 (based on data up to t-1) decides position for t.
-        
+
         strategy_df['Strategy_Return'] = strategy_df['Predicted_Signal'].shift(1) * strategy_df['Daily_Return']
         
         # Cumulative Returns
@@ -53,7 +43,7 @@ class StrategyBacktest:
         # Total Return
         total_return = (strategy_df['Strategy_Value'].iloc[-1] / self.initial_capital) - 1
         
-        # Sharpe Ratio (assuming roughly 252 trading days)
+        # Sharpe Ratio
         # Daily excess return
         excess_returns = strategy_df['Strategy_Return'].fillna(0) - (config.RISK_FREE_RATE / 252)
         sharpe_ratio = np.sqrt(252) * (excess_returns.mean() / excess_returns.std()) if excess_returns.std() != 0 else 0
