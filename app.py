@@ -171,7 +171,7 @@ st.sidebar.markdown("---")
 st.sidebar.caption(f"Asset: **{selected_ticker}**")
 
 #Data Loading
-@st.cache_data
+# @st.cache_data
 def get_processed_data(ticker):
     df = data_loader.get_stock(ticker)
     
