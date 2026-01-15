@@ -65,8 +65,8 @@ To run the engine locally for development or testing:
 
 1.  **Clone the repo**
     ```bash
-    git clone [https://github.com/AdamSzymanek/QuantFolio-Trading-Dashboard.git](https://github.com/AdamSzymanek/QuantFolio-Trading-Dashboard.git)
-    cd QuantFolio-Trading-Dashboard
+    git clone https://github.com/AdamSzymanek/QuantFolio.git
+    cd QuantFolio
     ```
 
 2.  **Install dependencies**
