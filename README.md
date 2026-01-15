@@ -15,7 +15,7 @@ The project integrates **Machine Learning (XGBoost)** for directional trend pred
 The application is deployed via Streamlit Community Cloud and connects to a static dataset for demonstration purposes.
 
 ### [👉 Launch QuantFolio Dashboard](https://quantfolio-xtdbqj96oakenvzansjpwl.streamlit.app/)
-*(Note: The container may take 10-30 seconds to wake up)*
+*(Note: The container may take 60 seconds to wake up)*
 
 ---
 
