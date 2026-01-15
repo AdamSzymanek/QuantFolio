@@ -174,6 +174,12 @@ st.sidebar.caption(f"Asset: **{selected_ticker}**")
 @st.cache_data
 def get_processed_data(ticker):
     df = data_loader.get_stock(ticker)
+    
+    # --- PERFORMANCE OPTIMIZATION ---
+    # Only process the last ~4 years of data for indicators.
+    # Processing 5 years takes too long on Free Tier.
+    df = df.tail(1000).copy() 
+    
     df = FinancialFeatures.add_technical_indicators(df)
     df = FinancialFeatures.add_ml_features(df)
     return df

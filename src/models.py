@@ -34,10 +34,10 @@ import streamlit as st
             params = config.XGB_PARAMS.copy()
             params['n_jobs'] = 1 # Force single thread
             
-            # --- OPTIMIZATION: Limit to recent history (last 2 years) ---
+            # --- OPTIMIZATION: Limit to recent history (last 1 year) ---
             # Training on 5 years of daily data (1250 rows) is too slow on Free Tier.
-            # 504 rows (2 years) is sufficient for short-term trend prediction.
-            train_df = df.tail(504).copy()
+            # 252 rows (1 year) is fastest and sufficient for demo.
+            train_df = df.tail(252).copy()
             
             exclude_cols = ['date', 'Name', 'Target', 'close', 'open', 'high', 'low', 'volume', 'Daily_Return']
             feature_cols = [c for c in train_df.columns if c not in exclude_cols]
