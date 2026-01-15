@@ -21,7 +21,7 @@ XGB_PARAMS = {
     'learning_rate': 0.1,
     'max_depth': 3,
     'random_state': 42,
-    'eval_metric': 'logloss'
+    'eval_metric': 'logloss',
     'n_jobs': -1
 }
 

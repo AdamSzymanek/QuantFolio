@@ -11,11 +11,12 @@ import streamlit as st
 # Podłoga (_) mówi Streamlitowi: "Nie trac czasu na haszowanie tego obiektu".
 # Cache opiera się TERAZ tylko na 'ticker_name'.
 
-@st.cache_resource(show_spinner="Training AI Model (Fast)...")
-def _train_xgboost_cached(_df, ticker_name):
+@st.cache_resource(show_spinner="Training AI Model (Fast)...", max_entries=100)
+def _train_xgboost_cached(_df: pd.DataFrame, ticker_name: str):
     """
-    Cached training function. 
-    Prefixing argument with '_' prevents slow hashing of the DataFrame.
+    Cached training function.
+    Prefixing argument with '_' (_df) prevents Streamlit from hashing the DataFrame,
+    which is the main cause of latency. The cache key is solely the 'ticker_name'.
     """
     # 1. Define Features
     exclude_cols = ['date', 'Name', 'Target', 'close', 'open', 'high', 'low', 'volume', 'Daily_Return']
@@ -51,13 +52,15 @@ class TrendPredictor:
         self.feature_cols = None
 
     def train(self, df):
-        # Wyciągamy nazwę spółki, żeby Cache wiedział co to za dane
+        # Explicitly extract the ticker name for the cache key
         if 'Name' in df.columns:
-            ticker_name = df['Name'].iloc[0]
+            ticker_name = str(df['Name'].iloc[0])
         else:
-            ticker_name = "UNKNOWN"
+            # Fallback if Name column is missing or for testing
+            ticker_name = "UNKNOWN_TICKER"
 
-        # Przekazujemy df jako '_df' (z podłogą), żeby ominąć haszowanie
+        # Call the cached function
+        # passing df as _df to bypass hashing
         results = _train_xgboost_cached(_df=df, ticker_name=ticker_name)
         
         self.model = results[0]
@@ -73,13 +76,12 @@ class TrendPredictor:
 
     def predict(self, df):
         if self.model is None:
-            # Fallback
-            if 'Name' in df.columns:
-                ticker_name = df['Name'].iloc[0]
-                self.train(df) # To wywoła cached version
-            else:
-                 raise ValueError("Model not trained!")
+             raise ValueError("Model not trained! Call train() first.")
              
+        # Ensure we only use the features the model was trained on
+        if self.feature_cols is None:
+             raise ValueError("Model trained but feature columns missing.")
+
         return self.model.predict(df[self.feature_cols])
 
 
