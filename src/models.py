@@ -105,12 +105,23 @@ class RiskSimulator:
         
         daily_returns = np.exp(drift + daily_volatility * np.random.normal(0, 1, (days, iterations)))
         
+        # Vectorized path generation using cumprod (Cumulative Product)
+        # This eliminates the Python loop completely.
+        # price_paths = current_price * np.cumprod(daily_returns, axis=0) 
+        
+        # Careful: daily_returns[0] should not be applied to t=0, 
+        # but to keep it simple and consistent with previous logic:
+        # We start at current_price.
+        
         price_paths = np.zeros((days, iterations))
         price_paths[0] = current_price
         
-        for t in range(1, days):
-            price_paths[t] = price_paths[t-1] * daily_returns[t]
-            
+        # Calculate cumulative returns from t=1 to end
+        # We need to explicitly set the first row of returns to 1 (neutral) so cumprod works from start
+        daily_returns[0] = 1.0 
+        
+        price_paths = current_price * np.cumprod(daily_returns, axis=0)
+        
         return price_paths
 
     def calculate_var(self, final_prices, initial_price, confidence_level=0.95):

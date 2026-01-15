@@ -12,7 +12,7 @@ RISK_FREE_RATE = 0.02  # Approximate 10-year Treasury yield
 CONFIDENCE_LEVEL = 0.95
 
 # Simulation Parameters
-SIMULATION_ITERATIONS = 1000
+SIMULATION_ITERATIONS = 200
 FORECAST_DAYS = 30
 
 # Model Parameters
