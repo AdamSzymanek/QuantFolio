@@ -7,20 +7,17 @@ import config
 import streamlit as st
 
 
-@st.cache_resource(show_spinner="Training AI Model (XGBoost)... please wait")
-def _train_xgboost_cached(df):
-    """
-    Internal function that performs the heavy lifting of training.
-    Cached by Streamlit.
-    """
 
+@st.cache_resource(show_spinner="Training AI Model (Only once per stock)...")
+def _train_xgboost_cached(df, target_col='Target'):
+    
     exclude_cols = ['date', 'Name', 'Target', 'close', 'open', 'high', 'low', 'volume', 'Daily_Return']
     feature_cols = [c for c in df.columns if c not in exclude_cols]
     
     X = df[feature_cols]
-    y = df['Target']
+    y = df[target_col]
     
-    
+
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
     
 
@@ -32,35 +29,25 @@ def _train_xgboost_cached(df):
     accuracy = accuracy_score(y_test, predictions)
     report = classification_report(y_test, predictions, output_dict=True)
     
-
     feature_importance = pd.DataFrame({
         'Feature': feature_cols,
-        'Importance': model.feature_importances_
+        'Importance': model.model.feature_importances_ if hasattr(model, 'model') else model.feature_importances_
     }).sort_values(by='Importance', ascending=False)
     
-
     return model, feature_importance, accuracy, report, X_test, y_test, predictions, feature_cols
 
 
 
 class TrendPredictor:
-    """
-    Predictive model for market trend analysis.
-    Acts as a wrapper around the cached training function.
-    """
     def __init__(self):
         self.model = None
         self.feature_importance = None
         self.feature_cols = None
 
     def train(self, df):
-        """
-        Trains the XGBoost Classifier (uses Cache).
-        """
 
         results = _train_xgboost_cached(df)
         
-
         self.model = results[0]
         self.feature_importance = results[1]
         accuracy = results[2]
@@ -68,18 +55,16 @@ class TrendPredictor:
         X_test = results[4]
         y_test = results[5]
         predictions = results[6]
-        self.feature_cols = results[7] 
+        self.feature_cols = results[7]
         
         return accuracy, report, X_test, y_test, predictions
 
     def predict(self, df):
-        """
-        Makes predictions on new data.
-        """
         if self.model is None:
-            raise ValueError("Model not trained yet!")
             
-e 
+            _train_xgboost_cached(df)
+            
+
         if self.feature_cols is None:
              exclude_cols = ['date', 'Name', 'Target', 'close', 'open', 'high', 'low', 'volume', 'Daily_Return']
              self.feature_cols = [c for c in df.columns if c not in exclude_cols]
@@ -88,26 +73,17 @@ e
 
 
 class RiskSimulator:
-    """
-    Monte Carlo Simulation for Risk Analysis.
-    """
     def __init__(self):
         pass
 
-
-    @st.cache_data(show_spinner="Running Monte Carlo Simulation...") 
+    @st.cache_data(show_spinner="Running Monte Carlo...")
     def run_simulation(_self, current_price, log_returns, days=30, iterations=1000):
-        """
-        Runs Monte Carlo simulation using Geometric Brownian Motion.
-        """
         mu = log_returns.mean()
         var = log_returns.var()
         sigma = log_returns.std()
-        
         drift = mu - (0.5 * var)
         daily_volatility = sigma
         
-   
         daily_returns = np.exp(drift + daily_volatility * np.random.normal(0, 1, (days, iterations)))
         
         price_paths = np.zeros((days, iterations))
@@ -119,9 +95,6 @@ class RiskSimulator:
         return price_paths
 
     def calculate_var(self, final_prices, initial_price, confidence_level=0.95):
-        """
-        Calculates Value at Risk (VaR).
-        """
         returns = (final_prices - initial_price) / initial_price
         var_percentile = np.percentile(returns, (1 - confidence_level) * 100)
         return var_percentile
