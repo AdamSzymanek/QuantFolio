@@ -88,5 +88,5 @@ To run the engine locally for development or testing:
 
 This project was built to demonstrate proficiency in financial modeling and full-stack data science.
 
-[<img src="https://img.shields.io/badge/LinkedIn-Profile-blue?style=flat&logo=linkedin">](LINK_DO_TWOJEGO_LINKEDIN)
+[<img src="https://img.shields.io/badge/LinkedIn-Profile-blue?style=flat&logo=linkedin">](www.linkedin.com/in/adamszymanek)
 [<img src="https://img.shields.io/badge/GitHub-Profile-black?style=flat&logo=github">](https://github.com/AdamSzymanek)
