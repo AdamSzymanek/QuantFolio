@@ -13,32 +13,32 @@ def _train_xgboost_cached(df):
     Internal function that performs the heavy lifting of training.
     Cached by Streamlit.
     """
-    # 1. Define Features
+
     exclude_cols = ['date', 'Name', 'Target', 'close', 'open', 'high', 'low', 'volume', 'Daily_Return']
     feature_cols = [c for c in df.columns if c not in exclude_cols]
     
     X = df[feature_cols]
     y = df['Target']
     
-    # 2. Split Data (Shuffle=False for Time Series is crucial!)
+    
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
     
-    # 3. Train Model
+
     model = XGBClassifier(**config.XGB_PARAMS)
     model.fit(X_train, y_train)
     
-    # 4. Generate Predictions & Metrics
+
     predictions = model.predict(X_test)
     accuracy = accuracy_score(y_test, predictions)
     report = classification_report(y_test, predictions, output_dict=True)
     
-    # 5. Calculate Feature Importance
+
     feature_importance = pd.DataFrame({
         'Feature': feature_cols,
         'Importance': model.feature_importances_
     }).sort_values(by='Importance', ascending=False)
     
-    # Return everything needed by the class
+
     return model, feature_importance, accuracy, report, X_test, y_test, predictions, feature_cols
 
 
@@ -57,10 +57,10 @@ class TrendPredictor:
         """
         Trains the XGBoost Classifier (uses Cache).
         """
-        # Call the cached function instead of training manually
+
         results = _train_xgboost_cached(df)
         
-        # Unpack results into class attributes
+
         self.model = results[0]
         self.feature_importance = results[1]
         accuracy = results[2]
@@ -79,8 +79,7 @@ class TrendPredictor:
         if self.model is None:
             raise ValueError("Model not trained yet!")
             
-        # Ensure we use exactly the same features as in training
-        # If feature_cols is not set yet, try to deduce 
+e 
         if self.feature_cols is None:
              exclude_cols = ['date', 'Name', 'Target', 'close', 'open', 'high', 'low', 'volume', 'Daily_Return']
              self.feature_cols = [c for c in df.columns if c not in exclude_cols]
