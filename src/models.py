@@ -6,10 +6,10 @@ from sklearn.metrics import classification_report, accuracy_score
 import config
 import streamlit as st
 
-# --- TUTAJ JEST MAGIA ---
-# Zmieniłem nazwę argumentu na '_df'. 
-# Podłoga (_) mówi Streamlitowi: "Nie trac czasu na haszowanie tego obiektu".
-# Cache opiera się TERAZ tylko na 'ticker_name'.
+# --- MAGIC HAPPENS HERE ---
+# I changed the argument name to '_df'.
+# The underscore (_) tells Streamlit: "Do not waste time hashing this object".
+# The cache relies NOW only on 'ticker_name'.
 
 @st.cache_resource(show_spinner="Training AI Model (Fast)...", max_entries=100)
 def _train_xgboost_cached(_df: pd.DataFrame, ticker_name: str):
