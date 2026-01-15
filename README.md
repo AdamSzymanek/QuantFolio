@@ -31,7 +31,7 @@ I designed the system using a modular pipeline approach to separate data process
 Transformation of raw OHLCV data into stationary features for supervised learning:
 -   **Momentum**: RSI (14-day) and Rate of Change (ROC).
 -   **Trend**: SMA Crossovers (Golden/Death Cross logic).
--   **Volatility**: Rolling annualized standard deviation (20-day window).
+-   **Volatility**: Rolling daily standard deviation (20-day window) to proxy short-term market risk.
 -   **Lagged Returns**: Time-shifted features ($R_{t-1}, R_{t-5}$) to capture serial autocorrelation.
 
 ### 3. Predictive Engine (`src/models.py`)
