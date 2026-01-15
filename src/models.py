@@ -34,9 +34,9 @@ import streamlit as st
             params = config.XGB_PARAMS.copy()
             params['n_jobs'] = 1 # Force single thread
             
-            # --- OPTIMIZATION: Limit to recent history (last 1 year) ---
-            # Training on full history is unnecessary for short-term prediction.
-            # 252 rows (1 year) is fastest and sufficient for demo.
+            # --- OPTIMIZATION: Train on recent history ---
+            # Training on the full 5-year history can be slow on free tiers.
+            # Limiting to the last year (252 days) ensures sub-second training times.
             train_df = df.tail(252).copy()
             
             exclude_cols = ['date', 'Name', 'Target', 'close', 'open', 'high', 'low', 'volume', 'Daily_Return']

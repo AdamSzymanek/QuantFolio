@@ -24,7 +24,7 @@ The application is deployed via Streamlit Community Cloud and connects to a stat
 I designed the system using a modular pipeline approach to separate data processing from inference and visualization.
 
 ### 1. Data Pipeline (`src/data_loader.py`)
--   **Source**: S&P 500 Historical Data (`data/all_stocks_5yr.csv`). *Note: Dataset truncated to 2016-2018 (Last 2 Years) for performance optimization on Free Tier.*
+-   **Source**: S&P 500 Historical Data (`data/all_stocks_5yr.csv`).
 -   **ETL**: Automated extraction, type casting, and temporal sorting. The pipeline ensures strictly chronological data splitting to prevent **look-ahead bias** during model training.
 
 ### 2. Feature Engineering (`src/features.py`)
