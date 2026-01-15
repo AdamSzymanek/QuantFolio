@@ -6,101 +6,80 @@ from sklearn.metrics import classification_report, accuracy_score
 import config
 import streamlit as st
 
+# --- TUTAJ JEST MAGIA ---
+# Zmieniłem nazwę argumentu na '_df'. 
+# Podłoga (_) mówi Streamlitowi: "Nie trac czasu na haszowanie tego obiektu".
+# Cache opiera się TERAZ tylko na 'ticker_name'.
+
+@st.cache_resource(show_spinner="Training AI Model (Fast)...")
+def _train_xgboost_cached(_df, ticker_name):
+    """
+    Cached training function. 
+    Prefixing argument with '_' prevents slow hashing of the DataFrame.
+    """
+    # 1. Define Features
+    exclude_cols = ['date', 'Name', 'Target', 'close', 'open', 'high', 'low', 'volume', 'Daily_Return']
+    feature_cols = [c for c in _df.columns if c not in exclude_cols]
+    
+    X = _df[feature_cols]
+    y = _df['Target']
+    
+    # 2. Split
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
+    
+    # 3. Train
+    model = XGBClassifier(**config.XGB_PARAMS)
+    model.fit(X_train, y_train)
+    
+    # 4. Evaluate
+    predictions = model.predict(X_test)
+    accuracy = accuracy_score(y_test, predictions)
+    report = classification_report(y_test, predictions, output_dict=True)
+    
+    feature_importance = pd.DataFrame({
+        'Feature': feature_cols,
+        'Importance': model.feature_importances_
+    }).sort_values(by='Importance', ascending=False)
+    
+    return model, feature_importance, accuracy, report, X_test, y_test, predictions, feature_cols
+
+
 class TrendPredictor:
-    """
-    Predictive model wrapper with HARD SESSION STATE CACHING.
-    """
     def __init__(self):
         self.model = None
         self.feature_importance = None
         self.feature_cols = None
 
     def train(self, df):
-        """
-        Trains the XGBoost Classifier but checks Session State first.
-        If model for this specific ticker exists in RAM, loads it instantly.
-        """
-        # 1. Sprawdzamy, jakiej spółki dotyczy ten DataFrame
-        # Zakładamy, że w df jest kolumna 'Name' (z Twojego data_loadera)
+        # Wyciągamy nazwę spółki, żeby Cache wiedział co to za dane
         if 'Name' in df.columns:
-            ticker = df['Name'].iloc[0]
+            ticker_name = df['Name'].iloc[0]
         else:
-            ticker = "UNKNOWN"
+            ticker_name = "UNKNOWN"
 
-        # 2. Tworzymy klucz do pamięci RAM
-        cache_key = f"trained_model_{ticker}"
-
-        # 3. SPRAWDZAMY CZY JUŻ TO MAMY (Instant Load)
-        if cache_key in st.session_state:
-            cached_data = st.session_state[cache_key]
-            self.model = cached_data['model']
-            self.feature_importance = cached_data['feat_imp']
-            self.feature_cols = cached_data['feat_cols']
-            return cached_data['acc'], cached_data['report'], cached_data['X_test'], cached_data['y_test'], cached_data['preds']
-
-        # ==========================================================
-        # JEŚLI NIE MAMY W PAMIĘCI -> DOPIERO WTEDY TRENUJEMY
-        # ==========================================================
+        # Przekazujemy df jako '_df' (z podłogą), żeby ominąć haszowanie
+        results = _train_xgboost_cached(_df=df, ticker_name=ticker_name)
         
-        # Define Features
-        exclude_cols = ['date', 'Name', 'Target', 'close', 'open', 'high', 'low', 'volume', 'Daily_Return']
-        # Bezpiecznik: bierzemy tylko kolumny numeryczne
-        feature_cols = [c for c in df.columns if c not in exclude_cols]
-        
-        X = df[feature_cols]
-        y = df['Target']
-        
-        # Split
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
-        
-        # Train
-        model = XGBClassifier(**config.XGB_PARAMS)
-        model.fit(X_train, y_train)
-        
-        # Evaluate
-        predictions = model.predict(X_test)
-        accuracy = accuracy_score(y_test, predictions)
-        report = classification_report(y_test, predictions, output_dict=True)
-        
-        feature_importance = pd.DataFrame({
-            'Feature': feature_cols,
-            'Importance': model.feature_importances_
-        }).sort_values(by='Importance', ascending=False)
-        
-        # Zapisujemy wyniki do obiektu klasy
-        self.model = model
-        self.feature_importance = feature_importance
-        self.feature_cols = feature_cols
-
-        # 4. ZAPISUJEMY DO SESSION STATE (RAM) NA PRZYSZŁOŚĆ
-        st.session_state[cache_key] = {
-            'model': model,
-            'feat_imp': feature_importance,
-            'feat_cols': feature_cols,
-            'acc': accuracy,
-            'report': report,
-            'X_test': X_test,
-            'y_test': y_test,
-            'preds': predictions
-        }
+        self.model = results[0]
+        self.feature_importance = results[1]
+        accuracy = results[2]
+        report = results[3]
+        X_test = results[4]
+        y_test = results[5]
+        predictions = results[6]
+        self.feature_cols = results[7]
         
         return accuracy, report, X_test, y_test, predictions
 
     def predict(self, df):
         if self.model is None:
-            # Próba ratunku z session state, jeśli obiekt został stworzony na nowo
+            # Fallback
             if 'Name' in df.columns:
-                ticker = df['Name'].iloc[0]
-                cache_key = f"trained_model_{ticker}"
-                if cache_key in st.session_state:
-                    self.model = st.session_state[cache_key]['model']
-                    self.feature_cols = st.session_state[cache_key]['feat_cols']
-                else:
-                    raise ValueError("Model not trained yet!")
+                ticker_name = df['Name'].iloc[0]
+                self.train(df) # To wywoła cached version
             else:
-                 raise ValueError("Model not trained yet!")
-
-        # Ensure features match
+                 raise ValueError("Model not trained!")
+             
         return self.model.predict(df[self.feature_cols])
 
 
@@ -108,7 +87,6 @@ class RiskSimulator:
     def __init__(self):
         pass
 
-    # Tutaj zwykły cache jest OK, bo to czysta matematyka
     @st.cache_data(show_spinner=False)
     def run_simulation(_self, current_price, log_returns, days=30, iterations=1000):
         mu = log_returns.mean()
