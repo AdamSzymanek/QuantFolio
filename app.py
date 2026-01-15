@@ -175,10 +175,7 @@ st.sidebar.caption(f"Asset: **{selected_ticker}**")
 def get_processed_data(ticker):
     df = data_loader.get_stock(ticker)
     
-    # --- PERFORMANCE OPTIMIZATION ---
-    # We limit the data for technical indicator calculation to recent history 
-    # to ensure responsiveness on cloud instances.
-    df = df.tail(1000).copy() 
+    # df = df.tail(1000).copy() 
     
     df = FinancialFeatures.add_technical_indicators(df)
     df = FinancialFeatures.add_ml_features(df)
