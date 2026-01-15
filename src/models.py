@@ -68,7 +68,7 @@ class TrendPredictor:
         X_test = results[4]
         y_test = results[5]
         predictions = results[6]
-        self.feature_cols = results[7] # Save feature names for prediction safety
+        self.feature_cols = results[7] 
         
         return accuracy, report, X_test, y_test, predictions
 
