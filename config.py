@@ -22,7 +22,7 @@ XGB_PARAMS = {
     'max_depth': 3,
     'random_state': 42,
     'eval_metric': 'logloss',
-    'n_jobs': -1
+    'n_jobs': 1
 }
 
 # Technical Indicators
