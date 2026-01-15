@@ -252,7 +252,11 @@ with tab2:
         acc, rep, X_test, y_test, preds = predictor.train(data)
         return predictor, acc, rep, preds
 
-    predictor, accuracy, report, predictions = train_model(df)
+    with st.status(f"Generowanie sygnałów AI dla {selected_ticker}...", expanded=True) as status:
+        st.write("Pobieranie danych historycznych...")
+        st.write("Trenowanie modelu XGBoost (może potrwać kilka sekund)...")
+        predictor, accuracy, report, predictions = train_model(df)
+        status.update(label="Analiza zakończona sukcesem!", state="complete", expanded=False)
     
     #Prediction Performance
     col_l, col_r = st.columns([1, 2])
