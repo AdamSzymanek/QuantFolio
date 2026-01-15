@@ -15,8 +15,9 @@ import streamlit as st
 def _train_xgboost_cached(_df: pd.DataFrame, ticker_name: str):
     """
     Cached training function.
-    Prefixing argument with '_' (_df) prevents Streamlit from hashing the DataFrame,
-    which is the main cause of latency. The cache key is solely the 'ticker_name'.
+    Prefixing argument with '_' (_df) prevents Streamlit from hashing the DataFrame.
+    Returns MINIMAL data to memory usage: just the model and feature names.
+    Calculations are done on the fly.
     """
     # 1. Define Features
     exclude_cols = ['date', 'Name', 'Target', 'close', 'open', 'high', 'low', 'volume', 'Daily_Return']
@@ -26,23 +27,25 @@ def _train_xgboost_cached(_df: pd.DataFrame, ticker_name: str):
     y = _df['Target']
     
     # 2. Split
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
+    X_train, _, y_train, _ = train_test_split(X, y, test_size=0.2, shuffle=False)
     
     # 3. Train
-    model = XGBClassifier(**config.XGB_PARAMS)
-    model.fit(X_train, y_train)
+    # HARDCODED n_jobs=1 to prevent freezing on Free Tier
+    # This overrides global config just in case.
+    params = config.XGB_PARAMS.copy()
+    params['n_jobs'] = 1
     
-    # 4. Evaluate
-    predictions = model.predict(X_test)
-    accuracy = accuracy_score(y_test, predictions)
-    report = classification_report(y_test, predictions, output_dict=True)
+    model = XGBClassifier(**params)
+    model.fit(X_train, y_train)
     
     feature_importance = pd.DataFrame({
         'Feature': feature_cols,
         'Importance': model.feature_importances_
     }).sort_values(by='Importance', ascending=False)
     
-    return model, feature_importance, accuracy, report, X_test, y_test, predictions, feature_cols
+    # ONLY return the model and metadata. Do NOT return large arrays (X_test, predictions)
+    # to avoid RAM eviction.
+    return model, feature_importance, feature_cols
 
 
 class TrendPredictor:
@@ -56,21 +59,25 @@ class TrendPredictor:
         if 'Name' in df.columns:
             ticker_name = str(df['Name'].iloc[0])
         else:
-            # Fallback if Name column is missing or for testing
             ticker_name = "UNKNOWN_TICKER"
 
-        # Call the cached function
-        # passing df as _df to bypass hashing
+        # Call the cached function to get the MODEL
         results = _train_xgboost_cached(_df=df, ticker_name=ticker_name)
         
         self.model = results[0]
         self.feature_importance = results[1]
-        accuracy = results[2]
-        report = results[3]
-        X_test = results[4]
-        y_test = results[5]
-        predictions = results[6]
-        self.feature_cols = results[7]
+        self.feature_cols = results[2]
+        
+        # --- RE-RUN PREDICTION ON THE FLY ---
+        # This is fast (ms) and saves RAM in the cache.
+        exclude_cols = ['date', 'Name', 'Target', 'close', 'open', 'high', 'low', 'volume', 'Daily_Return']
+        X = df[self.feature_cols]
+        y = df['Target']
+        _, X_test, _, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
+        
+        predictions = self.model.predict(X_test)
+        accuracy = accuracy_score(y_test, predictions)
+        report = classification_report(y_test, predictions, output_dict=True)
         
         return accuracy, report, X_test, y_test, predictions
 
