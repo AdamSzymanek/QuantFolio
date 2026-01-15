@@ -17,7 +17,7 @@ FORECAST_DAYS = 30
 
 # Model Parameters
 XGB_PARAMS = {
-    'n_estimators': 10,
+    'n_estimators': 5,
     'learning_rate': 0.1,
     'max_depth': 3,
     'random_state': 42,
