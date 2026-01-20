@@ -5,10 +5,6 @@ from datetime import datetime
 
 @st.cache_data(show_spinner="Loading S&P 500 Data...")
 def _load_csv_cached(file_path):
-    """
-    Funkcja pomocnicza, którą Streamlit zapamiętuje w RAM-ie.
-    Dzięki temu plik CSV jest czytany tylko raz.
-    """
     if not os.path.exists(file_path):
         return None
         

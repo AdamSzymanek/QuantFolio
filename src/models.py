@@ -6,12 +6,16 @@ from sklearn.metrics import classification_report, accuracy_score
 import config
 import streamlit as st
 
+class TrendPredictor:
+    def __init__(self):
+        self.model = None
+        self.feature_importance = None
+        self.feature_cols = None
 
     def train(self, df):
 
         if 'trained_models' not in st.session_state:
             st.session_state['trained_models'] = {}
-
 
         if 'Name' in df.columns:
             ticker_name = str(df['Name'].iloc[0])
@@ -45,7 +49,6 @@ import streamlit as st
                 'Feature': feature_cols,
                 'Importance': model.feature_importances_
             }).sort_values(by='Importance', ascending=False)
-
      
             st.session_state['trained_models'][ticker_name] = {
                 'model': model,
@@ -57,7 +60,6 @@ import streamlit as st
             self.feature_importance = feature_importance
             self.feature_cols = feature_cols
 
-        
         exclude_cols = ['date', 'Name', 'Target', 'close', 'open', 'high', 'low', 'volume', 'Daily_Return']
         X = df[self.feature_cols]
         y = df['Target']
@@ -73,7 +75,6 @@ import streamlit as st
         if self.model is None:
              raise ValueError("Model not trained! Call train() first.")
              
- 
         if self.feature_cols is None:
              raise ValueError("Model trained but feature columns missing.")
 
@@ -95,11 +96,9 @@ class RiskSimulator:
         
         daily_returns = np.exp(drift + daily_volatility * np.random.normal(0, 1, (days, iterations)))
         
-
         price_paths = np.zeros((days, iterations))
         price_paths[0] = current_price
         
-
         daily_returns[0] = 1.0 
         
         price_paths = current_price * np.cumprod(daily_returns, axis=0)

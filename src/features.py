@@ -3,28 +3,18 @@ import pandas as pd
 import numpy as np
 
 class FinancialFeatures:
-    """
-    Class to engineer financial features for analysis and machine learning.
-    """
     
     @staticmethod
     def add_technical_indicators(df):
-        """
-        Adds SMA, RSI, and Volatility technical indicators.
-        """
         df = df.copy()
         
-        # Simple Moving Averages
         df['SMA_50'] = df['close'].rolling(window=50).mean()
         df['SMA_200'] = df['close'].rolling(window=200).mean()
         
-        # Daily Returns
         df['Daily_Return'] = df['close'].pct_change()
         
-        # Volatility
         df['Volatility'] = df['Daily_Return'].rolling(window=20).std()
         
-        # RSI (Relative Strength Index)
         delta = df['close'].diff()
         gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
         loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
@@ -36,21 +26,15 @@ class FinancialFeatures:
 
     @staticmethod
     def add_ml_features(df):
-        """
-        Adds lag features specifically for the Machine Learning model.
-        """
         df = df.copy()
         
-        # Lagged Returns 
         df['Return_Lag_1'] = df['Daily_Return'].shift(1)
         df['Return_Lag_2'] = df['Daily_Return'].shift(2)
         df['Return_Lag_5'] = df['Daily_Return'].shift(5)
         
-        # Volume Change
         df['Volume_Change'] = df['volume'].pct_change()
         df['Volume_Change_Lag_1'] = df['Volume_Change'].shift(1)
         
-        # Price Momentum
         df['Momentum_1d'] = df['close'] / df['close'].shift(1) - 1
         
 

@@ -5,6 +5,22 @@ import numpy as np
 import plotly.graph_objects as go
 import plotly.express as px
 import config
+import sys
+import os
+import subprocess
+
+if __name__ == "__main__":
+    if "STREAMLIT_AUTORUN" not in os.environ:
+        try:
+            my_env = os.environ.copy()
+            my_env["STREAMLIT_AUTORUN"] = "true"
+            
+            subprocess.run(["streamlit", "run", sys.argv[0]], env=my_env)
+        except Exception:
+            pass
+        finally:
+            sys.exit()
+
 from src.data_loader import MarketData
 from src.features import FinancialFeatures
 from src.models import TrendPredictor, RiskSimulator
@@ -17,38 +33,32 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-#Custom CSS 
 st.markdown("""
 <style>
-    /* Hide specific Streamlit menu items */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     
-    /* Hide the top right 'Deploy' and 'Running' status but keep sidebar toggle */
     [data-testid="stHeaderAction"] {visibility: hidden;}
     [data-testid="stStatusWidget"] {visibility: hidden;}
     
-    /* Main Background & Font */
     .stApp {
         background-color: #0E1117;
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     }
     
-    /* Global Text Color */
     .stMarkdown, .stText, h1, h2, h3, p {
         color: #E0E0E0 !important;
     }
 
-    /* Cards */
     .metric-card {
-        background-color: #16161D; /* Slightly darker/sleeker */
+        background-color: #16161D;
         border: 1px solid #2D2D3A;
-        border-radius: 8px; /* Less rounded, more professional */
+        border-radius: 8px;
         padding: 24px;
         margin-bottom: 24px;
         box-shadow: 0 4px 20px rgba(0,0,0,0.2);
         transition: transform 0.2s ease;
-        min-height: 160px; /* Enforce equal height */
+        min-height: 160px;
         display: flex;
         flex-direction: column;
         justify-content: center;
@@ -78,13 +88,11 @@ st.markdown("""
     .positive-val { color: #4CAF50; }
     .negative-val { color: #FF5252; }
     
-    /* Sidebar Cleanup */
     .css-1d391kg {
         background-color: #0E1117;
         border-right: 1px solid #2D2D3A;
     }
     
-    /* Tabs */
     .stTabs [data-baseweb="tab-list"] {
         gap: 24px;
         border-bottom: 1px solid #2D2D3A;
@@ -101,7 +109,6 @@ st.markdown("""
         border-bottom-color: #4CAF50 !important;
     }
     
-    /* Hide Header Anchors (Link Icons) - Aggressive Selector */
     .stMarkdown h1 a, .stMarkdown h2 a, .stMarkdown h3 a, .stMarkdown h4 a, .stMarkdown h5 a, .stMarkdown h6 a {
         display: none !important;
         pointer-events: none;
@@ -113,7 +120,6 @@ st.markdown("""
         color: transparent !important;
     }
     
-    /* Target Streamlit's specific anchor link class if visible */
     a.anchor-link, [data-testid="stHeaderAnchor"], .st-emotion-cache-1629p8f a {
         display: none !important;
         visibility: hidden !important;
@@ -125,7 +131,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-#Helpers
 def render_metric_card(label, value, sub_value=None, help_text=None, is_negative=False):
     color_class = "negative-val" if is_negative else "positive-val"
     sub_html = f"<div class='metric-sub {color_class}'>{sub_value}</div>" if sub_value else ""
@@ -138,7 +143,6 @@ def render_metric_card(label, value, sub_value=None, help_text=None, is_negative
     </div>
     """, unsafe_allow_html=True)
 
-#Sidebar
 st.md = st.markdown
 
 st.sidebar.markdown("### Configuration")
@@ -170,12 +174,8 @@ with st.sidebar.expander("Usage Guide"):
 st.sidebar.markdown("---")
 st.sidebar.caption(f"Asset: **{selected_ticker}**")
 
-#Data Loading
-# @st.cache_data
 def get_processed_data(ticker):
     df = data_loader.get_stock(ticker)
-    
-    # df = df.tail(1000).copy() 
     
     df = FinancialFeatures.add_technical_indicators(df)
     df = FinancialFeatures.add_ml_features(df)
@@ -188,12 +188,10 @@ if df.empty:
     st.error(f"Insufficient data for {selected_ticker}.")
     st.stop()
     
-#Calculate durations for display
 start_date = df['date'].iloc[0].strftime('%Y-%m-%d')
 end_date = df['date'].iloc[-1].strftime('%Y-%m-%d')
 duration_years = (df['date'].iloc[-1] - df['date'].iloc[0]).days / 365.25
 
-#Common Plot Config
 PLOT_CONFIG = {
     'displayModeBar': 'hover',
     'scrollZoom': True,
@@ -201,10 +199,8 @@ PLOT_CONFIG = {
     'modeBarButtonsToRemove': ['lasso2d', 'select2d', 'toImage', 'autoScale2d']
 }
 
-#Tabs
 tab1, tab2, tab3, tab4 = st.tabs(["Market Overview", "Quant Signals", "Risk Analysis", "Methodology"])
 
-#TAB 1:Market Overview
 with tab1:
     st.caption(f"Historical Price Action ({start_date} to {end_date} • ~{duration_years:.1f} Years)")
     last_row = df.iloc[-1]
@@ -220,7 +216,6 @@ with tab1:
     with c4:
         render_metric_card("Volume (M)", f"{last_row['volume']/1e6:.1f}M")
 
-    #Chart
     fig = go.Figure()
     fig.add_trace(go.Candlestick(x=df['date'], open=df['open'], high=df['high'], low=df['low'], close=df['close'], name='Price'))
     fig.add_trace(go.Scatter(x=df['date'], y=df['SMA_50'], name='SMA 50', line=dict(color='#FFA726', width=1.5)))
@@ -244,13 +239,11 @@ with tab1:
         """)
 
 
-#TAB 2:Quant Signals
 with tab2:
     st.subheader("Model Forecast")
     st.caption("Predictive signals generated by XGBoost algorithm (Training on 80% history, Testing on recent 20%).")
     
     def train_model(data):
-        # Caching is now handled internally by TrendPredictor via _train_xgboost_cached
         predictor = TrendPredictor()
         acc, rep, X_test, y_test, preds = predictor.train(data)
         return predictor, acc, rep, preds
@@ -261,7 +254,6 @@ with tab2:
         predictor, accuracy, report, predictions = train_model(df)
         status.update(label="Analysis completed successfully!", state="complete", expanded=False)
     
-    #Prediction Performance
     col_l, col_r = st.columns([1, 2])
     
     with col_l:
@@ -328,7 +320,6 @@ with tab2:
 
     st.markdown("---")
     
-    #Strategy Backtest
     st.subheader("Strategy Backtest")
     test_days = len(predictions)
     st.caption(f"Performance simulation on unseen data (Last {test_days} trading days). Capital: ${initial_capital:,}")
@@ -347,7 +338,6 @@ with tab2:
     with b3:
         render_metric_card("Max Drawdown", f"{metrics['Max_Drawdown']*100:.2f}%", help_text="Maximum Peak-to-Trough Decline", is_negative=True)
     
-    #Equity Curve
     fig_eq = go.Figure()
     fig_eq.add_trace(go.Scatter(x=strategy_df['date'], y=strategy_df['Market_Value'], name='Benchmark', line=dict(color='gray', dash='dash')))
     fig_eq.add_trace(go.Scatter(x=strategy_df['date'], y=strategy_df['Strategy_Value'], name='Quant Strategy', line=dict(color='#00CC96', width=2)))
@@ -359,7 +349,6 @@ with tab2:
     st.plotly_chart(fig_eq, width="stretch", config=PLOT_CONFIG)
 
 
-#TAB 3: Risk Simulator
 with tab3:
     st.subheader("Monte Carlo Simulation")
     st.caption(f"Stochastic projection of 1,000 potential price paths for the next 30 Days (GBM Process).")
@@ -370,12 +359,10 @@ with tab3:
     
     simulation_paths = risk_sim.run_simulation(last_price, recent_log_returns, days=config.FORECAST_DAYS, iterations=config.SIMULATION_ITERATIONS)
     
-    # VaR
     final_prices = simulation_paths[-1, :]
     var_percent = risk_sim.calculate_var(final_prices, last_price, confidence_level=0.95)
     var_amount = initial_capital * var_percent
     
-    # Layout for risk
     r_col1, r_col2 = st.columns([1, 2])
     
     with r_col1:
@@ -390,13 +377,10 @@ with tab3:
         """)
         
     with r_col2:
-        # Plot
         fig_mc = go.Figure()
-        # Sample paths
         for i in range(min(50, config.SIMULATION_ITERATIONS)):
             fig_mc.add_trace(go.Scatter(y=simulation_paths[:, i], mode='lines', line=dict(width=1, color='rgba(75, 192, 192, 0.2)'), showlegend=False))
         
-        # Mean path
         mean_path = np.mean(simulation_paths, axis=1)
         fig_mc.add_trace(go.Scatter(y=mean_path, mode='lines', name='Average/Mean', line=dict(color='white', width=3, dash='dot')))
         
@@ -404,12 +388,10 @@ with tab3:
                              paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(fig_mc, width="stretch", config=PLOT_CONFIG)
 
-#TAB 4: Methodology
 with tab4:
     st.subheader("Methodology & Glossary")
     st.markdown("Comprehensive guide to the metrics, indicators, and models used in this dashboard.")
     
-    #Technical Indicators
     with st.expander("📊 Technical Indicators (Market Overview)", expanded=True):
         st.markdown("These indicators are calculated directly from historical price and volume data to assess market state.")
         
@@ -437,7 +419,6 @@ with tab4:
         *   *Formula*: Standard Deviation of Daily Returns * Square Root(252 trading days).
         """)
 
-    #Algorithmic Factors
     with st.expander("🤖 Algorithmic Model (Quant Signals)", expanded=False):
         st.markdown("How the Machine Learning model (XGBoost) sees the market.")
         
@@ -461,7 +442,6 @@ with tab4:
         *   If Price rises 5% on **Low Volume**: The move might be a "fake out" and could reverse.
         """)
         
-    #Risk Metrics
     with st.expander("🛡️ Risk Management (Simulation)", expanded=False):
         st.markdown("Metrics to help you sleep at night by understanding the worst-case scenarios.")
         
