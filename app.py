@@ -8,18 +8,22 @@ import config
 import sys
 import os
 import subprocess
+from streamlit.web import cli as stcli
 
 if __name__ == "__main__":
-    if "STREAMLIT_AUTORUN" not in os.environ:
+    try:
+        from streamlit.runtime import get_instance
         try:
-            my_env = os.environ.copy()
-            my_env["STREAMLIT_AUTORUN"] = "true"
-            
-            subprocess.run(["streamlit", "run", sys.argv[0]], env=my_env)
-        except Exception:
-            pass
-        finally:
-            sys.exit()
+            if get_instance() is None:
+                raise RuntimeError("No instance")
+        except RuntimeError:
+            sys.argv = ["streamlit", "run", sys.argv[0]]
+            sys.exit(stcli.main())
+    except ImportError:
+        pass
+
+
+
 
 from src.data_loader import MarketData
 from src.features import FinancialFeatures
