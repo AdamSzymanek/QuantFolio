@@ -32,15 +32,22 @@ class TrendPredictor:
             params = config.XGB_PARAMS.copy()
             params['n_jobs'] = 1
 
-            train_df = df.tail(252).copy()
-            
+            # Use full dataset for training, but respect time series split
             exclude_cols = ['date', 'Name', 'Target', 'close', 'open', 'high', 'low', 'volume', 'Daily_Return']
-            feature_cols = [c for c in train_df.columns if c not in exclude_cols]
+            feature_cols = [c for c in df.columns if c not in exclude_cols]
             
-            X = train_df[feature_cols]
-            y = train_df['Target']
+            X = df[feature_cols]
+            y = df['Target']
             
-            X_train, _, y_train, _ = train_test_split(X, y, test_size=0.2, shuffle=False)
+            # Strict Time Series Split: Train on first 80%, Test on last 20%
+            split_idx = int(len(df) * 0.8)
+            
+            X_train = X.iloc[:split_idx]
+            y_train = y.iloc[:split_idx]
+            
+            # Test set for evaluation (Unseen future data)
+            X_test = X.iloc[split_idx:]
+            y_test = y.iloc[split_idx:]
             
             model = XGBClassifier(**params)
             model.fit(X_train, y_train)
@@ -53,17 +60,26 @@ class TrendPredictor:
             st.session_state['trained_models'][ticker_name] = {
                 'model': model,
                 'feature_importance': feature_importance,
-                'feature_cols': feature_cols
+                'feature_cols': feature_cols,
+                'test_data': (X_test, y_test) # Cache test data to ensure consistency
             }
             
             self.model = model
             self.feature_importance = feature_importance
             self.feature_cols = feature_cols
 
-        exclude_cols = ['date', 'Name', 'Target', 'close', 'open', 'high', 'low', 'volume', 'Daily_Return']
-        X = df[self.feature_cols]
-        y = df['Target']
-        _, X_test, _, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
+        # Retrieve test data from cache or split again if needed (should match above)
+        if 'test_data' in st.session_state['trained_models'][ticker_name]:
+             X_test, y_test = st.session_state['trained_models'][ticker_name]['test_data']
+        else:
+             # Fallback if cached model doesn't have test_data (legacy cache support)
+             # Re-create split
+             exclude_cols = ['date', 'Name', 'Target', 'close', 'open', 'high', 'low', 'volume', 'Daily_Return']
+             feature_cols = [c for c in df.columns if c not in exclude_cols]
+             split_idx = int(len(df) * 0.8)
+             X_test = df[feature_cols].iloc[split_idx:]
+             y_test = df['Target'].iloc[split_idx:]
+
         
         predictions = self.model.predict(X_test)
         accuracy = accuracy_score(y_test, predictions)
