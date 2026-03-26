@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -7,23 +6,6 @@ import plotly.express as px
 import config
 import sys
 import os
-import subprocess
-from streamlit.web import cli as stcli
-
-if __name__ == "__main__":
-    try:
-        from streamlit.runtime import get_instance
-        try:
-            if get_instance() is None:
-                raise RuntimeError("No instance")
-        except RuntimeError:
-            sys.argv = ["streamlit", "run", sys.argv[0]]
-            sys.exit(stcli.main())
-    except ImportError:
-        pass
-
-
-
 
 from src.data_loader import MarketData
 from src.features import FinancialFeatures
@@ -252,11 +234,9 @@ with tab2:
         acc, rep, X_test, y_test, preds = predictor.train(data)
         return predictor, acc, rep, preds
 
-    with st.status(f"Generating AI signals for {selected_ticker}...", expanded=True) as status:
-        st.write("Fetching historical data...")
-        st.write("Training XGBoost model (this may take a few seconds)...")
+    with st.spinner(f"Generating AI signals for {selected_ticker}... (Fetching and training XGBoost)"):
         predictor, accuracy, report, predictions = train_model(df)
-        status.update(label="Analysis completed successfully!", state="complete", expanded=False)
+    st.success("Analysis completed successfully!")
     
     col_l, col_r = st.columns([1, 2])
     

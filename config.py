@@ -1,11 +1,10 @@
-
 # Configuration for QuantFolio
 
 import os
 
 # Data Paths
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_PATH = os.path.join(BASE_DIR, 'data', 'all_stocks_5yr.csv')
+# Using relative paths for Streamlit Community Cloud compatibility
+DATA_PATH = "data/all_stocks_5yr.csv"
 
 # Risk Parameters
 RISK_FREE_RATE = 0.02  # Approximate 10-year Treasury yield
